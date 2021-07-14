@@ -7,40 +7,48 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using Azure.Storage.Blobs;
+using Microsoft.Azure.Cosmos.Table;
 
 
 namespace Hyeon.Function
 {
-    public static class GetJSONData
+    public static class WriteTable
     {
-        [FunctionName("GetJSONData")]
-        public static string Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]
+        [FunctionName("WriteTable")]
+        public static void Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)]
         HttpRequest req, ILogger log, ExecutionContext context)
 
         {
             string connStrA = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
             string requestBody = new StreamReader(req.Body).ReadToEnd();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
-            string valueA = data.a;
+            string PartitionKeyA = data.PartitionKey;
+            string RowKeyA = data.RowKey;
+            string contentA = data.Content;
 
-            BlobServiceClient clientA = new BlobServiceClient(connStrA);
-            BlobContainerClient containerA = clientA.GetBlobContainerClient("mingyucon");
-            BlobClient blobA = containerA.GetBlobClient(valueA + ".json");
+            CloudStorageAccount stoA = CloudStorageAccount.Parse(connStrA);
+            CloudTableClient tbC = stoA.CreateCloudTableClient();
+            CloudTable tableA = tbC.GetTableReference("tableA");
 
-            string responseA = "No Data";
-
-            if (blobA.Exists())
-            {
-                using (MemoryStream msA = new MemoryStream())
-                {
-                    blobA.DownloadTo(msA);
-                    responseA = System.Text.Encoding.UTF8.GetString(msA.ToArray());
-                }
-            }
-            return responseA;
-
-           
+            writeToTable(tableA, contentA, PartitionKeyA, RowKeyA);
+            
         }
+    static void writeToTable(CloudTable tableA, string contentA, string PartitionKeyA, string RowKeyA)
+    {
+        MemoData memoA = new MemoData();
+        memoA.PartitionKey = PartitionKeyA;
+        memoA.RowKey = RowKeyA;
+        memoA.content = contentA;
+
+        TableOperation operA = TableOperation.InsertOrReplace(memoA);
+        tableA.Execute(operA);
+        
     }
+
+    private class MemoData: TableEntity
+    {
+        public string content {get; set;}
+    }
+
+    }    
 }
