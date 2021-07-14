@@ -21,26 +21,25 @@ namespace Hyeon.Function
         {
             string connStrA = Environment.GetEnvironmentVariable("AzureWebJobsStorage");
             string requestBody = new StreamReader(req.Body).ReadToEnd();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);//Json으로 만든 Object
+            dynamic data = JsonConvert.DeserializeObject(requestBody);
             string valueA = data.a;
-            
-            BlobServiceClient ClientA = new BlobServiceClient(connStrA);
-            //serviceClient에서 컨테이너 가져오기
-            BlobContainerClient containerA = ClientA.getBlobContainerClient("hyeoncon");
-            //JSON같은 데이터 가져오기
-            BlobClient blobA = containerA.getBlobClient(valueA + ".json");
-            
-            //text로 변환
+
+            BlobServiceClient clientA = new BlobServiceClient(connStrA);
+            BlobContainerClient containerA = clientA.GetBlobContainerClient("mingyucon");
+            BlobClient blobA = containerA.GetBlobClient(valueA + ".json");
+
             string responseA = "No Data";
-            if(blobA.Exists())
-            {   
+
+            if (blobA.Exists())
+            {
                 using (MemoryStream msA = new MemoryStream())
                 {
                     blobA.DownloadTo(msA);
                     responseA = System.Text.Encoding.UTF8.GetString(msA.ToArray());
                 }
-            } 
-            return valueA;
+            }
+            return responseA;
+
            
         }
     }
